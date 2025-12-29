@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alperen & Ulaş: Ortak Mutfak Beslenme Programı</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f5f5f4; color: #1c1917; }
+        .chart-container { position: relative; width: 100%; max-width: 300px; height: 300px; margin: 0 auto; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+    <!-- Chosen Palette: Warm Neutrals (Stone/Zinc) with Blue (Alperen) and Green (Ulaş) accents for distinction. -->
+    <!-- Application Structure Plan: 
+         1. Dashboard: Immediate visual comparison of macro targets to understand the 'Why' behind the plan.
+         2. Principles: Critical cooking rules (No oil in pot, etc.) pinned for easy access.
+         3. Interactive Weekly Plan: A day-selector tab system that updates a detailed meal view. 
+            - "Cook Mode" focus: Each meal card clearly separates "Shared Prep" from "Individual Plates" to facilitate the workflow.
+         4. Smart Shopping List: Categorized toggle view to see what to buy together vs. individually.
+         RATIONALE: The primary friction point is cooking together but eating differently. The structure isolates the "Shared" task first, then diverges for specific portions.
+    -->
+    <!-- Visualization & Content Choices:
+         1. Macro Donuts (Chart.js): Visualizes the huge Carb discrepancy (Alperen) vs Fat balance (Ulaş). Goal: Inform & Compare.
+         2. Dynamic Meal Cards (JS/DOM): Updates content based on Day selection. Uses grid layout to show Alperen/Ulaş side-by-side. Goal: Organize & Inform.
+         3. Portion Visuals (CSS Bars): Visual representation of rice/chicken ratios in the meal cards to prevent weighing errors (e.g., Alperen gets 2.5x rice). Goal: Compare.
+         4. Interactive Shopping List (JS): Checkbox functionality for tracking. Goal: Organize.
+         5. CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+    -->
+</head>
+<body class="bg-stone-100 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50 border-b border-stone-200">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-bold text-stone-800 tracking-tight">FitMates 🍳</h1>
+                <p class="text-xs text-stone-500">Ortak Mutfak, Farklı Hedefler</p>
+            </div>
+            <nav class="space-x-4 text-sm font-medium">
+                <button onclick="scrollToSection('dashboard')" class="text-stone-600 hover:text-stone-900 transition">Özet</button>
+                <button onclick="scrollToSection('planner')" class="text-stone-600 hover:text-stone-900 transition">Plan</button>
+                <button onclick="scrollToSection('shopping')" class="text-stone-600 hover:text-stone-900 transition">Market</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-4xl mx-auto w-full px-4 py-6 space-y-8">
+
+        <!-- Intro Section -->
+        <section id="dashboard" class="space-y-4">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+                <h2 class="text-2xl font-bold text-stone-800 mb-2">Hoşgeldiniz</h2>
+                <p class="text-stone-600 leading-relaxed">
+                    Bu uygulama, <strong>Alperen</strong> ve <strong>Ulaş</strong> için özel olarak hazırlanmıştır. 
+                    Amacımız, mutfakta tek bir tencere kullanarak iki farklı sporcu beslenme hedefini yönetmektir. 
+                    Aşağıdaki grafikler, neden tabaklarınızın farklı görüneceğini özetlemektedir.
+                </p>
+            </div>
+
+            <!-- Macro Comparison Charts -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Alperen Card -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-blue-100">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-stone-800">Alperen</h3>
+                        <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded">Yüksek Karb / Düşük Yağ</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="alperenChart"></canvas>
+                    </div>
+                    <div class="mt-4 text-center grid grid-cols-3 divide-x divide-stone-100 text-sm">
+                        <div>
+                            <span class="block font-bold text-stone-800">136g</span>
+                            <span class="text-stone-500 text-xs">Protein</span>
+                        </div>
+                        <div>
+                            <span class="block font-bold text-stone-800">34.2g</span>
+                            <span class="text-stone-500 text-xs">Yağ</span>
+                        </div>
+                        <div>
+                            <span class="block font-bold text-stone-800">593g</span>
+                            <span class="text-stone-500 text-xs">Karb</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ulaş Card -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-stone-800">Ulaş</h3>
+                        <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-1 rounded">Dengeli / Orta Yağ</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="ulasChart"></canvas>
+                    </div>
+                    <div class="mt-4 text-center grid grid-cols-3 divide-x divide-stone-100 text-sm">
+                        <div>
+                            <span class="block font-bold text-stone-800">150g</span>
+                            <span class="text-stone-500 text-xs">Protein</span>
+                        </div>
+                        <div>
+                            <span class="block font-bold text-stone-800">50g</span>
+                            <span class="text-stone-500 text-xs">Yağ</span>
+                        </div>
+                        <div>
+                            <span class="block font-bold text-stone-800">252g</span>
+                            <span class="text-stone-500 text-xs">Karb</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Critical Rules -->
+        <section class="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-lg">
+            <h3 class="font-bold text-orange-800 mb-2">⚠️ Mutfak Anayasası</h3>
+            <ul class="list-disc list-inside text-sm text-orange-900 space-y-1">
+                <li><strong>Yağ Yok:</strong> Tencereye asla yağ eklemeyin. Ulaş yağını tabağına çiğ dökecek.</li>
+                <li><strong>Çiğ Tartın:</strong> Gramajlar pişmemiş ağırlıktır. Pişince ağırlık değişir, orantılı bölüşün.</li>
+                <li><strong>Ekipman:</strong> Fırın/Mikrodalga yok. Her şey ocakta (haşlama/tava).</li>
+            </ul>
+        </section>
+
+        <!-- Weekly Planner Section -->
+        <section id="planner" class="space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="text-2xl font-bold text-stone-800">Günlük Plan</h2>
+                <span class="text-sm text-stone-500 bg-stone-100 px-3 py-1 rounded-full border border-stone-200" id="current-day-label">Gün Seçiniz</span>
+            </div>
+
+            <!-- Day Selector Tabs -->
+            <div class="flex space-x-2 overflow-x-auto hide-scrollbar pb-2" id="day-tabs">
+                <!-- Injected via JS -->
+            </div>
+
+            <!-- Preparation Summary -->
+            <div id="prep-summary" class="bg-stone-800 text-white p-4 rounded-xl shadow-lg transition-all duration-300">
+                <h4 class="text-sm uppercase tracking-wider text-stone-400 font-bold mb-1">Günün Hazırlığı</h4>
+                <p class="text-lg font-medium" id="prep-text">...</p>
+            </div>
+
+            <!-- Meals Container -->
+            <div id="meals-container" class="space-y-6">
+                <!-- Meal cards injected via JS -->
+            </div>
+        </section>
+
+        <!-- Shopping List Section -->
+        <section id="shopping" class="space-y-4 pt-8 border-t border-stone-200">
+            <h2 class="text-2xl font-bold text-stone-800">Akıllı Alışveriş Listesi</h2>
+            <p class="text-stone-600 mb-4">Haftalık tahmini ihtiyaç listesi. Kategorilere göre filtreleyebilirsiniz.</p>
+            
+            <div class="flex space-x-2 mb-4">
+                <button onclick="filterShopping('all')" class="shopping-filter-btn active px-4 py-2 rounded-lg text-sm font-medium bg-stone-800 text-white transition">Tümü</button>
+                <button onclick="filterShopping('common')" class="shopping-filter-btn px-4 py-2 rounded-lg text-sm font-medium bg-white text-stone-600 border border-stone-200 transition">Ortak</button>
+                <button onclick="filterShopping('alperen')" class="shopping-filter-btn px-4 py-2 rounded-lg text-sm font-medium bg-white text-stone-600 border border-stone-200 transition">Alperen Özel</button>
+                <button onclick="filterShopping('ulas')" class="shopping-filter-btn px-4 py-2 rounded-lg text-sm font-medium bg-white text-stone-600 border border-stone-200 transition">Ulaş Özel</button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="shopping-list-container">
+                <!-- Shopping items injected via JS -->
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t border-stone-200 mt-12 py-8 text-center text-stone-400 text-sm">
+        <p>&copy; 2024 FitMates - Tıbbi Beslenme Prensipleri ile Hazırlanmıştır.</p>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- Data: 7-Day Meal Plan ---
+        const schedule = [
+            {
+                day: "Pazartesi",
+                id: "d1",
+                prep: "Büyük tencere pirinç lapası & Tavada yağsız tavuk göğsü.",
+                meals: [
+                    {
+                        name: "Kahvaltı",
+                        common: "Yulaf Ezmesi, Yumurta, Muz",
+                        alperen: { detail: "150g Yulaf (Lapa) + 6 Yumurta Beyazı + 2 Muz + 1yk Bal", note: "Sarısız ye, bal ekle." },
+                        ulas: { detail: "80g Yulaf (Lapa) + 3 Tam Yumurta + 1 Muz", note: "Sarıları ye." }
+                    },
+                    {
+                        name: "Öğle",
+                        common: "Tavuk Göğsü, Pirinç, Brokoli",
+                        alperen: { detail: "150g Tavuk + 250g Pirinç + Brokoli + 1 Bardak Üzüm Suyu", note: "Üzüm suyu iç." },
+                        ulas: { detail: "200g Tavuk + 100g Pirinç + Brokoli + 1tk Zeytinyağı", note: "Zeytinyağı ekle, tavuğu daha çok al." }
+                    },
+                    {
+                        name: "Ara Öğün",
+                        common: "Ekmek/Galeta, Lor Peyniri, Elma",
+                        alperen: { detail: "4 Dilim Beyaz Ekmek + 50g Lor + 1 Elma + 1yk Reçel", note: "Reçelli ekmek yap." },
+                        ulas: { detail: "2 Dilim Tam Buğday Ekmek + 50g Lor + 1 Elma", note: "Sade ye." }
+                    },
+                    {
+                        name: "Akşam",
+                        common: "Tavuk Göğsü, Pirinç, Mevsim Salata",
+                        alperen: { detail: "150g Tavuk + 250g Pirinç + Yağsız Salata", note: "Pirinç ağırlıklı." },
+                        ulas: { detail: "200g Tavuk + 80g Pirinç + Salata + 1tk Zeytinyağı", note: "Salataya yağ dök." }
+                    },
+                    {
+                        name: "Gece",
+                        common: "Lor Peyniri / Karb Takviyesi",
+                        alperen: { detail: "100g Yağsız Lor + 2 Muz", note: "" },
+                        ulas: { detail: "100g Yağsız Lor", note: "" }
+                    }
+                ]
+            },
+            {
+                day: "Salı",
+                id: "d2",
+                prep: "Makarna günü. Tavuklar tavada sotelenecek.",
+                meals: [
+                    { name: "Kahvaltı", common: "Yulaf, Yumurta, Kuru Üzüm", alperen: { detail: "150g Yulaf + 6 Yumurta Beyazı + 1 Avuç Üzüm + Bal", note: "" }, ulas: { detail: "80g Yulaf + 3 Tam Yumurta + Yarım Avuç Üzüm", note: "" } },
+                    { name: "Öğle", common: "Hindi Göğsü, Makarna, Kabak", alperen: { detail: "150g Hindi + 250g Makarna + Kabak + 2 Dilim Ekmek", note: "Ekmeği unutma." }, ulas: { detail: "200g Hindi + 100g Makarna + Kabak + 1tk Zeytinyağı", note: "Yağ ekle." } },
+                    { name: "Ara Öğün", common: "Pirinç Patlağı, Muz", alperen: { detail: "1 Paket Patlak + 2 Muz + Bal", note: "" }, ulas: { detail: "Yarım Paket Patlak + 1 Muz", note: "" } },
+                    { name: "Akşam", common: "Hindi Göğsü, Makarna, Salata", alperen: { detail: "150g Hindi + 250g Makarna + Yağsız Salata + Meyve Suyu", note: "" }, ulas: { detail: "200g Hindi + 80g Makarna + Salata + 1tk Zeytinyağı", note: "" } },
+                    { name: "Gece", common: "Lor Peyniri, Kuruyemiş/Meyve", alperen: { detail: "100g Lor + 1 Elma", note: "" }, ulas: { detail: "100g Lor + 5 Çiğ Badem", note: "Badem ye." } }
+                ]
+            },
+            {
+                day: "Çarşamba",
+                id: "d3",
+                prep: "Bulgur pilavı ve Tavuk Haşlama (Sebzeli).",
+                meals: [
+                    { name: "Kahvaltı", common: "Yumurta, Ekmek, Söğüş", alperen: { detail: "7 Yumurta Beyazı + 1 Bütün Ekmek + Reçel", note: "Koca ekmek senin." }, ulas: { detail: "3 Tam Yumurta + 3 Dilim Ekmek", note: "" } },
+                    { name: "Öğle", common: "Tavuk, Bulgur, Biber", alperen: { detail: "150g Tavuk + 250g Bulgur + Biber", note: "" }, ulas: { detail: "200g Tavuk + 100g Bulgur + Biber + 1tk Zeytinyağı", note: "" } },
+                    { name: "Ara Öğün", common: "Meyve Tabağı", alperen: { detail: "2 Muz + 1 Elma + 1 Portakal", note: "Meyve şöleni." }, ulas: { detail: "1 Muz + 1 Elma", note: "" } },
+                    { name: "Akşam", common: "Tavuk, Bulgur, Yoğurt", alperen: { detail: "150g Tavuk + 250g Bulgur + Yağsız Yoğurt", note: "" }, ulas: { detail: "200g Tavuk + 80g Bulgur + Yarım Yağlı Yoğurt", note: "" } },
+                    { name: "Gece", common: "Süt", alperen: { detail: "1 Bardak Yağsız Süt + Mısır Gevreği", note: "Gevrek ekle." }, ulas: { detail: "1 Bardak Yarım Yağlı Süt", note: "" } }
+                ]
+            },
+            {
+                day: "Perşembe",
+                id: "d4",
+                prep: "Patates Haşlama günü.",
+                meals: [
+                    { name: "Kahvaltı", common: "Yulaf (Kakaolu), Yumurta", alperen: { detail: "150g Yulaf + 6 Yumurta Beyazı + Bal", note: "" }, ulas: { detail: "80g Yulaf + 3 Tam Yumurta", note: "" } },
+                    { name: "Öğle", common: "Hindi, Patates Haşlama", alperen: { detail: "150g Hindi + 800g Patates + Yeşillik", note: "800g Patates!" }, ulas: { detail: "200g Hindi + 300g Patates + 1tk Zeytinyağı", note: "" } },
+                    { name: "Ara Öğün", common: "Ekmek Arası Lor", alperen: { detail: "Yarım Ekmek + Lor + Domates", note: "" }, ulas: { detail: "1 Dilim Ekmek + Lor + 2 Ceviz", note: "Ceviz ekle." } },
+                    { name: "Akşam", common: "Hindi, Pirinç, Salata", alperen: { detail: "150g Hindi + 250g Pirinç + Yağsız Salata + Meyve Suyu", note: "" }, ulas: { detail: "200g Hindi + 80g Pirinç + Salata + 1tk Zeytinyağı", note: "" } },
+                    { name: "Gece", common: "Meyve", alperen: { detail: "2 Muz + Bal", note: "" }, ulas: { detail: "1 Elma", note: "" } }
+                ]
+            },
+            {
+                day: "Cuma",
+                id: "d5",
+                prep: "Tavuk Sote (Yağsız) ve Makarna.",
+                meals: [
+                    { name: "Kahvaltı", common: "Yumurta, Ekmek", alperen: { detail: "7 Yumurta Beyazı + 5 Dilim Ekmek + Reçel", note: "Zeytin yok." }, ulas: { detail: "3 Tam Yumurta + 2 Dilim Ekmek + 5 Zeytin", note: "Zeytin var." } },
+                    { name: "Öğle", common: "Tavuk Sote, Makarna", alperen: { detail: "150g Tavuk + 250g Makarna + Domates", note: "" }, ulas: { detail: "200g Tavuk + 100g Makarna + 1tk Zeytinyağı", note: "" } },
+                    { name: "Ara Öğün", common: "Yulaf / Meyve", alperen: { detail: "100g Yulaf + Bal + Muz", note: "" }, ulas: { detail: "1 Elma", note: "" } },
+                    { name: "Akşam", common: "Tavuk Sote, Makarna, Ayran", alperen: { detail: "150g Tavuk + 250g Makarna + Yağsız Ayran", note: "" }, ulas: { detail: "200g Tavuk + 80g Makarna + Ayran", note: "" } },
+                    { name: "Gece", common: "Lor Peyniri", alperen: { detail: "100g Lor + Reçel", note: "" }, ulas: { detail: "100g Lor", note: "" } }
+                ]
+            },
+            {
+                day: "Cumartesi",
+                id: "d6",
+                prep: "Pirinç Pilavı ve Hindi.",
+                meals: [
+                    { name: "Kahvaltı", common: "Yulaf Pankeki (Yağsız)", alperen: { detail: "150g Yulaf Unu + 5 Yumurta Beyazı + Bal", note: "" }, ulas: { detail: "80g Yulaf Unu + 2 Tam Yumurta", note: "" } },
+                    { name: "Öğle", common: "Hindi, Pirinç, Bezelye", alperen: { detail: "150g Hindi + 250g Pirinç + 4yk Bezelye", note: "" }, ulas: { detail: "200g Hindi + 100g Pirinç + 2yk Bezelye + Zeytinyağı", note: "" } },
+                    { name: "Ara Öğün", common: "Sandviç (Füme)", alperen: { detail: "Tam Ekmek Arası Tavuk Füme", note: "Bütün ekmek." }, ulas: { detail: "1 Dilim Ekmek Üstü Tavuk Füme", note: "" } },
+                    { name: "Akşam", common: "Hindi, Pirinç, Salata", alperen: { detail: "150g Hindi + 250g Pirinç + Salata + Meyve Suyu", note: "" }, ulas: { detail: "200g Hindi + 80g Pirinç + Salata + Zeytinyağı", note: "" } },
+                    { name: "Gece", common: "Meyve", alperen: { detail: "2 Portakal", note: "" }, ulas: { detail: "1 Portakal", note: "" } }
+                ]
+            },
+            {
+                day: "Pazar",
+                id: "d7",
+                prep: "Dolap temizliği. Genelde Pirinç + Tavuk.",
+                meals: [
+                    { name: "Kahvaltı", common: "Menemen (Yağsız), Ekmek", alperen: { detail: "7 Yumurta Beyazı + 1 Bütün Ekmek", note: "Yağsız menemen." }, ulas: { detail: "3 Tam Yumurta + 2 Dilim Ekmek + 1tk Yağ", note: "Yağını tabağına ekle." } },
+                    { name: "Öğle", common: "Tavuk, Pirinç, Havuç", alperen: { detail: "150g Tavuk + 250g Pirinç + Havuç", note: "" }, ulas: { detail: "200g Tavuk + 100g Pirinç + Havuç + Zeytinyağı", note: "" } },
+                    { name: "Ara Öğün", common: "Yulaf / Kuruyemiş", alperen: { detail: "100g Yulaf + Bal + Kuru Meyve", note: "" }, ulas: { detail: "1 Avuç Çiğ Badem + 1 Meyve", note: "" } },
+                    { name: "Akşam", common: "Tavuk, Pirinç, Salata", alperen: { detail: "150g Tavuk + 250g Pirinç + Salata", note: "" }, ulas: { detail: "200g Tavuk + 80g Pirinç + Salata + Zeytinyağı", note: "" } },
+                    { name: "Gece", common: "Lor Peyniri", alperen: { detail: "100g Lor + Reçel", note: "" }, ulas: { detail: "100g Lor", note: "" } }
+                ]
+            }
+        ];
+
+        // --- Data: Shopping List ---
+        const shoppingList = [
+            { item: "Tavuk Göğsü (4.5 kg)", category: "common", type: "protein" },
+            { item: "Hindi Göğsü (2 kg)", category: "common", type: "protein" },
+            { item: "Pirinç (4 kg)", category: "common", type: "carb" },
+            { item: "Makarna (2 Paket)", category: "common", type: "carb" },
+            { item: "Yulaf Ezmesi (2 kg)", category: "common", type: "carb" },
+            { item: "Yumurta (70-80 adet)", category: "common", type: "protein" },
+            { item: "Lor Peyniri (1.5 kg)", category: "common", type: "protein" },
+            { item: "Muz, Elma, Yeşillik", category: "common", type: "fresh" },
+            { item: "Bal / Reçel (Bolca)", category: "alperen", type: "sugar" },
+            { item: "Meyve Suyu (%100 Elma/Üzüm)", category: "alperen", type: "sugar" },
+            { item: "Beyaz Ekmek (Günlük)", category: "alperen", type: "carb" },
+            { item: "Zeytinyağı (Sızma)", category: "ulas", type: "fat" },
+            { item: "Kuruyemiş (Ceviz/Badem)", category: "ulas", type: "fat" }
+        ];
+
+        // --- State Management ---
+        let currentDayIndex = 0;
+        let shoppingFilter = 'all';
+
+        // --- DOM Elements ---
+        const tabsContainer = document.getElementById('day-tabs');
+        const mealsContainer = document.getElementById('meals-container');
+        const prepText = document.getElementById('prep-text');
+        const currentDayLabel = document.getElementById('current-day-label');
+        const shoppingListContainer = document.getElementById('shopping-list-container');
+
+        // --- Chart.js Initialization ---
+        function initCharts() {
+            // Alperen Chart
+            new Chart(document.getElementById('alperenChart').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Protein (136g)', 'Yağ (34g)', 'Karb (593g)'],
+                    datasets: [{
+                        data: [136, 34, 593],
+                        backgroundColor: ['#3b82f6', '#facc15', '#60a5fa'], // Blue, Yellow, Light Blue
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    cutout: '70%'
+                }
+            });
+
+            // Ulaş Chart
+            new Chart(document.getElementById('ulasChart').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Protein (150g)', 'Yağ (50g)', 'Karb (252g)'],
+                    datasets: [{
+                        data: [150, 50, 252],
+                        backgroundColor: ['#10b981', '#f59e0b', '#34d399'], // Green, Orange, Light Green
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        // --- Render Functions ---
+        
+        function renderDayTabs() {
+            tabsContainer.innerHTML = '';
+            schedule.forEach((day, index) => {
+                const btn = document.createElement('button');
+                const isSelected = index === currentDayIndex;
+                btn.className = `flex-shrink-0 px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 
+                    ${isSelected ? 'bg-stone-800 text-white shadow-md' : 'bg-white text-stone-500 border border-stone-200 hover:bg-stone-50'}`;
+                btn.innerText = day.day;
+                btn.onclick = () => {
+                    currentDayIndex = index;
+                    renderDayTabs();
+                    renderMeals();
+                };
+                tabsContainer.appendChild(btn);
+            });
+            currentDayLabel.innerText = schedule[currentDayIndex].day;
+        }
+
+        function renderMeals() {
+            const dayData = schedule[currentDayIndex];
+            
+            // Animation reset
+            prepText.style.opacity = '0';
+            mealsContainer.style.opacity = '0';
+
+            setTimeout(() => {
+                prepText.innerText = dayData.prep;
+                prepText.style.opacity = '1';
+                
+                mealsContainer.innerHTML = '';
+                
+                dayData.meals.forEach((meal, idx) => {
+                    const card = document.createElement('div');
+                    card.className = "bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden";
+                    
+                    card.innerHTML = `
+                        <!-- Header: Meal Name & Common Ingredients -->
+                        <div class="bg-stone-50 p-4 border-b border-stone-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                            <div>
+                                <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">${meal.name}</span>
+                                <h3 class="font-bold text-stone-800">${meal.common}</h3>
+                            </div>
+                            <span class="text-xs bg-stone-200 text-stone-600 px-2 py-1 rounded">Ortak Tencere 🍲</span>
+                        </div>
+
+                        <!-- Split View -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-stone-100">
+                            <!-- Alperen Side -->
+                            <div class="p-4 relative hover:bg-blue-50/30 transition">
+                                <div class="flex justify-between items-start mb-2">
+                                    <span class="font-bold text-blue-700 text-sm">Alperen</span>
+                                    ${meal.alperen.note ? `<span class="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-medium">${meal.alperen.note}</span>` : ''}
+                                </div>
+                                <p class="text-stone-700 text-sm leading-snug">${meal.alperen.detail}</p>
+                                <!-- Visual Indicator (e.g. for Rice) -->
+                                ${meal.name.includes("Öğle") || meal.name.includes("Akşam") ? 
+                                    `<div class="mt-3 w-full bg-stone-100 h-1.5 rounded-full overflow-hidden">
+                                        <div class="bg-blue-400 h-full w-[80%]"></div>
+                                     </div><p class="text-[10px] text-stone-400 mt-1 text-right">Karb Yükü</p>` : ''}
+                            </div>
+
+                            <!-- Ulaş Side -->
+                            <div class="p-4 relative hover:bg-emerald-50/30 transition">
+                                <div class="flex justify-between items-start mb-2">
+                                    <span class="font-bold text-emerald-700 text-sm">Ulaş</span>
+                                    ${meal.ulas.note ? `<span class="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-medium">${meal.ulas.note}</span>` : ''}
+                                </div>
+                                <p class="text-stone-700 text-sm leading-snug">${meal.ulas.detail}</p>
+                                <!-- Visual Indicator -->
+                                ${meal.name.includes("Öğle") || meal.name.includes("Akşam") ? 
+                                    `<div class="mt-3 w-full bg-stone-100 h-1.5 rounded-full overflow-hidden">
+                                        <div class="bg-emerald-400 h-full w-[40%]"></div>
+                                     </div><p class="text-[10px] text-stone-400 mt-1 text-right">Karb Yükü</p>` : ''}
+                            </div>
+                        </div>
+                    `;
+                    mealsContainer.appendChild(card);
+                });
+                mealsContainer.style.opacity = '1';
+            }, 150);
+        }
+
+        function renderShoppingList() {
+            shoppingListContainer.innerHTML = '';
+            
+            const filtered = shoppingList.filter(item => {
+                if (shoppingFilter === 'all') return true;
+                return item.category === shoppingFilter;
+            });
+
+            if (filtered.length === 0) {
+                shoppingListContainer.innerHTML = '<p class="text-stone-400 col-span-2 text-center py-4">Bu kategoride ürün yok.</p>';
+                return;
+            }
+
+            filtered.forEach(item => {
+                const div = document.createElement('div');
+                let borderColor = 'border-stone-200';
+                let badge = '';
+
+                if (item.category === 'common') badge = '<span class="w-2 h-2 rounded-full bg-stone-400 mr-2"></span>';
+                if (item.category === 'alperen') { borderColor = 'border-blue-200'; badge = '<span class="w-2 h-2 rounded-full bg-blue-400 mr-2"></span>'; }
+                if (item.category === 'ulas') { borderColor = 'border-emerald-200'; badge = '<span class="w-2 h-2 rounded-full bg-emerald-400 mr-2"></span>'; }
+
+                div.className = `flex items-center p-3 bg-white rounded-lg border ${borderColor} hover:shadow-sm transition cursor-pointer select-none`;
+                div.onclick = function() {
+                    this.classList.toggle('opacity-50');
+                    this.classList.toggle('line-through');
+                    const checkbox = this.querySelector('input');
+                    checkbox.checked = !checkbox.checked;
+                };
+
+                div.innerHTML = `
+                    <div class="flex items-center flex-grow">
+                        ${badge}
+                        <span class="text-sm font-medium text-stone-700">${item.item}</span>
+                    </div>
+                    <input type="checkbox" class="h-4 w-4 text-stone-600 rounded border-stone-300 focus:ring-stone-500 pointer-events-none">
+                `;
+                shoppingListContainer.appendChild(div);
+            });
+        }
+
+        // --- Interaction Handlers ---
+        function filterShopping(category) {
+            shoppingFilter = category;
+            
+            // Update UI buttons
+            document.querySelectorAll('.shopping-filter-btn').forEach(btn => {
+                btn.classList.remove('bg-stone-800', 'text-white');
+                btn.classList.add('bg-white', 'text-stone-600');
+                if (btn.innerText.toLowerCase().includes(category === 'all' ? 'tümü' : 
+                   category === 'common' ? 'ortak' : 
+                   category === 'alperen' ? 'alperen' : 'ulaş')) {
+                    btn.classList.remove('bg-white', 'text-stone-600');
+                    btn.classList.add('bg-stone-800', 'text-white');
+                }
+            });
+
+            renderShoppingList();
+        }
+
+        function scrollToSection(id) {
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // --- Init ---
+        window.addEventListener('load', () => {
+            initCharts();
+            renderDayTabs();
+            renderMeals();
+            renderShoppingList();
+        });
+
+    </script>
+</body>
+</html>
